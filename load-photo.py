@@ -3,7 +3,6 @@ import face_recognition
 
 # photo_jiaqi_1 = face_recognition.load_image_file('./Jiaqi/jiaqi-1.JPG', 'RGB') 
 photo_jiaqi_1 = face_recognition.load_image_file('./Jiaqi/jiaqi-1.JPG', 'L') 
-
 photo_zhanghe_1 = face_recognition.load_image_file('./ZhangHe/zhanghe-1.jpeg', 'RGB') 
 photo_kerr_1 = face_recognition.load_image_file('./Miranda Kerr/kerr-1.jpeg', 'RGB') 
 
@@ -11,6 +10,7 @@ photo_kerr_1 = face_recognition.load_image_file('./Miranda Kerr/kerr-1.jpeg', 'R
 print(photo_jiaqi_1.shape)
 print(photo_zhanghe_1.shape)
 print(photo_kerr_1.shape)
+
 
 # PIL image open, image filter: (import Image, ImageFilter)
 pil_jiaqi_1 = Image.open('./Jiaqi/jiaqi-1.JPG')
@@ -37,3 +37,9 @@ draw.line((100, 300, 250, 500), fill = (0, 0, 255), width = 5)
 fnt = ImageFont.truetype("Pillow/fonts/Arial", 40)
 draw.text((300, 260), "I love Jiaqi!", font=fnt, fill=(235, 52, 125))
 pil_photo_zhanghe_1.show()
+
+# Image.fromarray():
+photo_jiaqi_2 = face_recognition.load_image_file('./Jiaqi/jiaqi-2.JPG', 'RGB') 
+print(photo_jiaqi_2.shape)
+pil_image_jiaqi_2 = Image.fromarray(photo_jiaqi_2)
+pil_image_jiaqi_2.show()
