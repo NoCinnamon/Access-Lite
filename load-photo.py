@@ -43,3 +43,17 @@ photo_jiaqi_2 = face_recognition.load_image_file('./Jiaqi/jiaqi-2.JPG', 'RGB')
 print(photo_jiaqi_2.shape)
 pil_image_jiaqi_2 = Image.fromarray(photo_jiaqi_2)
 pil_image_jiaqi_2.show()
+
+# Face location: (locate the face)
+photo_jiaqi_3 = face_recognition.load_image_file('./Jiaqi/jiaqi-3.jpeg', 'RGB')
+print(photo_jiaqi_1.shape)
+l = face_recognition.face_locations(photo_jiaqi_3)
+print(l)
+top = l[0][0]
+right = l[0][1]
+bottom = l[0][2]
+left = l[0][3]
+jiaqi_3_face = photo_jiaqi_3[top:bottom, left:right]
+print(jiaqi_3_face.shape)
+image_jiaqi_3 = Image.fromarray(jiaqi_3_face)
+image_jiaqi_3.show()
