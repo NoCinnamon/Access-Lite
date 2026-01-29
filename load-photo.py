@@ -57,3 +57,18 @@ jiaqi_3_face = photo_jiaqi_3[top:bottom, left:right]
 print(jiaqi_3_face.shape)
 image_jiaqi_3 = Image.fromarray(jiaqi_3_face)
 image_jiaqi_3.show()
+
+
+# locate all faces in the image, show faces one by one.
+photo_two_face = face_recognition.load_image_file('./jiaqi/two-face-01.jpeg', 'RGB')
+face_locations = face_recognition.face_locations(photo_two_face)
+print("There are {} faces in this photo".format(len(face_locations)))
+
+face_count = 0
+for face_location in face_locations:
+    face_count += 1
+    top, right, bottom, left = face_location
+    print("Face {}   top: {}, left: {}, bottom {}, right: {}".format(face_count, top, left, bottom, right)) 
+    face_image = photo_two_face[top:bottom, left:right]
+    pil_image_two_face = Image.fromarray(face_image)
+    pil_image_two_face.show()
