@@ -84,6 +84,26 @@ draw = ImageDraw.Draw(pil_two_face_image)
 for face_location in face_locations:
     top, right, bottom, left = face_location
     
-    draw = ImageDraw.Draw(pil_two_face_image)
     draw.rectangle([left, top, right, bottom], outline = (0, 255, 0), width = 6)    # match what PIL expects: [left, top, right, bottom]
     pil_two_face_image.show()
+
+
+# draw rectangle mark on one faces and add text onto it:
+# jiaqi-6jpeg wont work, the face_recongnition library failed to find face.
+# so have a good clear picture is important for this model.
+photo_jiaqi_7 = face_recognition.load_image_file('./jiaqi/jiaqi-7.jpeg', 'RGB')
+l= face_recognition.face_locations(photo_jiaqi_7)
+
+top = l[0][0]
+right = l[0][1]
+bottom = l[0][2]
+left = l[0][3]
+
+pil_jiaqi_7 = Image.fromarray(photo_jiaqi_7)
+
+fnt = ImageFont.truetype("Pillow/fonts/Arial", 40)
+
+draw = ImageDraw.Draw(pil_jiaqi_7)
+draw.rectangle([left, top, right, bottom], outline = (0,255,0), width = 6)
+draw.text((left + 120, bottom - 50), "jiaqi", font = fnt, fill = (0,0,255))
+pil_jiaqi_7.show()
