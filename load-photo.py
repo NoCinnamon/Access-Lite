@@ -72,3 +72,18 @@ for face_location in face_locations:
     face_image = photo_two_face[top:bottom, left:right]
     pil_image_two_face = Image.fromarray(face_image)
     pil_image_two_face.show()
+
+
+# show rangtangle mark on all faces in the image:
+photo_two_face = face_recognition.load_image_file('./jiaqi/two-face-02.jpeg', 'RGB') # turn to numpy
+face_locations = face_recognition.face_locations(photo_two_face)
+# numpy array to a PIL Image so we can draw on it
+pil_two_face_image = Image.fromarray(photo_two_face)
+
+draw = ImageDraw.Draw(pil_two_face_image)
+for face_location in face_locations:
+    top, right, bottom, left = face_location
+    
+    draw = ImageDraw.Draw(pil_two_face_image)
+    draw.rectangle([left, top, right, bottom], outline = (0, 255, 0), width = 6)    # match what PIL expects: [left, top, right, bottom]
+    pil_two_face_image.show()
