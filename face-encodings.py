@@ -9,3 +9,6 @@ print("Print out all the encodings: ")
 for i in range(len(encode_twoFace)):
     print(i)
     print(encode_twoFace[i])                # here is the actual encodings print out for each face detacted.
+
+
+
