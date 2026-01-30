@@ -116,7 +116,11 @@ fl = face_recognition.face_locations(photo_strangers)
 pil_strangers = Image.fromarray(photo_strangers)
 
 face_count = len(fl)
-print("face count: ", face_count)
+if face_count == 0:
+    print("No face found")
+else:
+    print("Number of Faces detected in this photo:", face_count)
+
 
 fnt = ImageFont.truetype("Pillow/fonts/Arial", 40)
 draw = ImageDraw.Draw(pil_strangers)
