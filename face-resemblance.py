@@ -69,3 +69,5 @@ for i in range (3):
     distances_b = face_recognition.face_distance(encode_taylor[i], encode_adele)
     print(distances_b)
 print("------------------------------------------------------------------------------------")
+
+
