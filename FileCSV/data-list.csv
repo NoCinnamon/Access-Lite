@@ -1,0 +1,21 @@
+ID,Name,File Name,Status
+1,Adele-01,./Adele/Adele-00.webp,Authorized
+2,Adele-02,./Adele/Adele-01.webp,Authorized
+3,Adele-03,./Adele/Adele-02.webp,Authorized
+4,Adele-04,./Adele/Adele-03.webp,Authorized
+5,Jiaqi-01,./Jiaqi/jiaqi-1.jpg,Authorized
+6,Jiaqi-02,./Jiaqi/jiaqi-2.JPG,Authorized
+7,Jiaqi-03,./Jiaqi/jiaqi-3.jpeg,Authorized
+8,Jiaqi-04,./Jiaqi/jiaqi-4.jpeg,Authorized
+9,Jiaqi-05,./Jiaqi/jiaqi-5.jpeg,Authorized
+10,Jiaqi-07,./Jiaqi/jiaqi-7.jpeg,Authorized
+11,TaylorSwift-01,./Taylor Swift/Taylor-00.webp,Authorized
+12,TaylorSwift-02,./Taylor Swift/Taylor-01.webp,Authorized
+13,TaylorSwift-03,./Taylor Swift/Taylor-02.webp,Authorized
+14,TaylorSwift-04,./Taylor Swift/Taylor-03.webp,Authorized
+15,TaylorSwift-05,./Taylor Swift/Taylor-06.jpg,Authorized
+16,ZhangHe,./ZhangHe/zhanghe-1.jpeg,Authorized
+17,Kerr,./Miranda Kerr/kerr-1.jpeg,Authorized
+18,JPhonex,./JPhonex/JP-01.webp,Authorized
+19,Mountain,./red-list/Mountain.jpg,Denied
+20,kerreys,./red-list/Isreal-Keyes.jpg,Denied

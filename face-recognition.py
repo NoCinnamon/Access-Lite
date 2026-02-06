@@ -94,3 +94,23 @@ else:
 # 6. Detailed Loop (to see exactly which face matched)
 for i, match in enumerate(green_matches):
     print(f"Comparison with Green List face #{i}: {match}")
+
+
+# print("------------------------------------------------------------------------------------")
+
+# for udmy assignment:
+# f0 = face_recognition.load_image_file('./Jiaqi/jiaqi-1.jpg')
+# f1 = face_recognition.load_image_file('./Adele/Adele-03.webp', 'RGB')
+
+# fuk = face_recognition.load_image_file('./Jiaqi/jiaqi-5.jpeg', 'RGB')
+
+# f0_enco = face_recognition.face_encodings(f0)[0]
+# f1_enco = face_recognition.face_encodings(f1)[0]
+# fuk_enco = face_recognition.face_encodings(fuk)[0]
+
+# faces = [f0_enco, f1_enco]
+
+# fnd_result = face_recognition.compare_faces(faces, fuk_enco)
+
+# for i, match in enumerate(fnd_result):
+#     print(f"Face unknown compared to f{i}: {match}")
