@@ -34,7 +34,7 @@ if len(uk_encodings) > 0:
         else:
             print(f"\nNo face detected in: {path}\n")
 
-    fnd_status = face_recognition.compare_faces(valid_encodings, uk_encod, tolerance=0.5)
+    fnd_status = face_recognition.compare_faces(valid_encodings, uk_encod, tolerance=0.6)   # keep it 0.6 or it wont find out two 'mountains' are same person
     
     # test:
     # print(uk_encod)
@@ -49,7 +49,7 @@ if len(uk_encodings) > 0:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             if matched_status == 'Denied':
-                    print(f"\n🛑 RED ALERT! 🛑")
+                    print(f"\n RED RED RED RED RED RED RED RED RED RED RED RED  ALERT!RED RED RED RED RED RED RED RED RED RED RED RED RED ")
                     print(f"DENIED person detected: {matched_name}")
                     print(f"Time: {timestamp}")
                     print("Security notified.\n")
