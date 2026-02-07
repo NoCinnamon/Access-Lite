@@ -12,8 +12,8 @@ valid_ids = [] # Added this to track the IDs
 valid_statuses = []
 
 # uk = face_recognition.load_image_file('./unknown/jiaqi-7.jpeg', 'RGB')        # green face
-uk = face_recognition.load_image_file('./red-list/mountain-02.webp', 'RGB')   # red face
-# uk = face_recognition.load_image_file('./unknown/uk-00.webp', 'RGB')          # yellow face
+# uk = face_recognition.load_image_file('./red-list/mountain-02.webp', 'RGB')   # red face
+uk = face_recognition.load_image_file('./unknown/uk-00.webp', 'RGB')          # yellow face
 uk_encodings = face_recognition.face_encodings(uk)
 
 if len(uk_encodings) > 0:
@@ -50,6 +50,9 @@ if len(uk_encodings) > 0:
             
             if matched_status == 'Denied':
                     print(f"\n RED RED RED RED RED RED RED RED RED RED RED RED  ALERT!RED RED RED RED RED RED RED RED RED RED RED RED RED ")
+                    Red_entry = f"{valid_statuses[i]} {matched_name} {timestamp}\n"
+                    with open('./data-file/RED.txt', "a") as log_file:
+                        log_file.write(Red_entry) 
                     print(f"DENIED person detected: {matched_name}")
                     print(f"Time: {timestamp}")
                     print("Security notified.\n")
@@ -62,6 +65,10 @@ if len(uk_encodings) > 0:
             break # Stop looking once we find the first match
 
     if not match_found:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        yellow_entry = f"UNKNOWN_USER UNKNOWN_NAME {timestamp}\n"
+        with open('./data-file/Yello.txt', "a") as log_file:
+            log_file.write(yellow_entry) 
         print("Alert Code-Yellow: Face detected, but no match found in the database (Unknown Person).")
 
 else:
