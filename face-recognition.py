@@ -1,10 +1,16 @@
 import face_recognition
-# from PIL import Image
+from PIL import Image
 
 
 # # Compare 2 faces
 # img_jiaqi = face_recognition.load_image_file('./jiaqi/jiaqi-3.jpeg', 'RGB')
 # encode_jiaqi = face_recognition.face_encodings(img_jiaqi)[0]
+
+# # test:
+# img_mountain02 = face_recognition.load_image_file('./red-list/mountain-02.webp', 'RGB')
+# encode_uk = face_recognition.face_encodings(img_mountain02)[0]
+# image_uk = Image.fromarray(img_mountain02)
+# image_uk.show()
 
 # img_uk = face_recognition.load_image_file('./unknown/uk-00.webp', 'RGB')
 # encode_uk = face_recognition.face_encodings(img_uk)[0]
@@ -71,8 +77,8 @@ fred_enco = face_recognition.face_encodings(fred)[0]
 red_list = [fred_enco]
 
 # 3. Process the Unknown Face
-# fuk = face_recognition.load_image_file('./unknown/uk-00.webp')
-# fuk_enco = face_recognition.face_encodings(fuk)[0] # Single encoding, not a list!
+fuk = face_recognition.load_image_file('./unknown/uk-00.webp')
+fuk_enco = face_recognition.face_encodings(fuk)[0] # Single encoding, not a list!
 
 fuk01 = face_recognition.load_image_file('./unknown/Taylor-05.webp')
 fuk01_enco = face_recognition.face_encodings(fuk01)[0] # Single encoding, not a list!
