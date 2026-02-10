@@ -31,7 +31,8 @@ for index, row in ef.iterrows():
         valid_firstName.append(row['First Name'])
         valid_lastName.append(row['Last Name'])
         valid_statuses.append(row['Status'])
-
+    else:
+        print(f"\nNo face detected in: {path}\n")
 
 camera = cv2.VideoCapture(0)
 for i in range(10):
