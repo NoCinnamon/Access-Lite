@@ -13,7 +13,7 @@ valid_statuses = []
 
 # uk = face_recognition.load_image_file('./unknown/jiaqi-7.jpeg', 'RGB')        # green face
 # uk = face_recognition.load_image_file('./red-list/mountain-02.webp', 'RGB')   # red face
-uk = face_recognition.load_image_file('./unknown/uk-00.webp', 'RGB')          # yellow face
+uk = face_recognition.load_image_file('./unknown/uk-00.webp', 'RGB')            # yellow face
 uk_encodings = face_recognition.face_encodings(uk)
 
 if len(uk_encodings) > 0:
