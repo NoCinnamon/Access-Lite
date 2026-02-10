@@ -5,7 +5,7 @@ firstName = ['Jiaqi', 'B', 'C', 'D']
 lastNmae = ['liu', 'E', 'F', 'G']
 
 x = str(datetime.datetime.now())
-i = 3
+i = 3       # should print out person at i= 3 which is DG
 attendanceRecord = "\n" + str(id[i]) + ' ' + firstName[i] + ' ' + lastNmae[i] + ' ' + x
 
 print(attendanceRecord)
