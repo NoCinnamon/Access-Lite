@@ -1,36 +1,22 @@
 import face_recognition
 import cv2
 from PIL import ImageDraw, ImageFont
-# import sys
-import pandas as pd
+import pickle
 import datetime
-import pygame
 
+# Load the frozen photo_database
+with open("photo_database.pkl", "rb") as f:
+    data = pickle.load(f)
 
-#Reference Data Load
+# Re-assign your variables from the Pickle dictionary
+valid_encodings = data["encodings"]
+valid_ids = data["ids"]
+valid_firstName = data["firstName"]
+valid_lastName = data["lastName"]
+valid_statuses = data["statuses"]
 
-# ef ---> employee data file
-ef = pd.read_csv('./data-file/employee-log.csv')
+print(f"System Ready. Loaded {len(valid_encodings)} employees from cache.")
 
-valid_encodings = []
-valid_ids = [] # Added this to track the IDs
-valid_firstName = []
-valid_lastName = []
-valid_statuses = []
-
-for index, row in ef.iterrows():
-    path = row['File Name'] 
-    img = face_recognition.load_image_file(path)
-    encods = face_recognition.face_encodings(img)
-    
-    if len(encods) > 0:
-        valid_encodings.append(encods[0])
-        valid_ids.append(row['ID'])
-        valid_firstName.append(row['First Name'])
-        valid_lastName.append(row['Last Name'])
-        valid_statuses.append(row['Status'])
-    else:
-        print(f"\nNo face detected in: {path}\n")
 
 camera = cv2.VideoCapture(0)
 for i in range(10):
@@ -82,13 +68,7 @@ if len(uk_encodings) > 0:
 
 
 
-
-
-
-
-
-
-
+    # camera test
     # cap = cv2.VideoCapture(0) 
     # if not cap.isOpened():
     #     print("no")
