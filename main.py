@@ -3,6 +3,8 @@ import cv2
 from PIL import ImageDraw, ImageFont
 import pickle
 import datetime
+import time
+start_time = time.time()
 
 # Load the frozen photo_database
 with open("photo_database.pkl", "rb") as f:
@@ -67,7 +69,7 @@ if len(uk_encodings) > 0:
         print("Alert Code-Yellow: Face detected, but no match found in the database (Unknown Person).")
 
 
-
+print("--- %s seconds ---" % (time.time() - start_time))
     # camera test
     # cap = cv2.VideoCapture(0) 
     # if not cap.isOpened():
