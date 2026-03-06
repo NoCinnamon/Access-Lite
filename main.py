@@ -70,6 +70,9 @@ if len(uk_encodings) > 0:
 
 
 print("--- %s seconds ---" % (time.time() - start_time))
+
+
+
     # camera test
     # cap = cv2.VideoCapture(0) 
     # if not cap.isOpened():

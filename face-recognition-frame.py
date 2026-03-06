@@ -19,6 +19,7 @@ def face_confidence(face_distance, match_threshold=0.6):
 class FaceRecognition:
     face_locations = []
     face_encodings = []
+    known_face_encodings = []
     face_names = []
     known_face_names = []
     process_currebt_frame = True    # so you dont have to recognize faces every single frame, insterad, do every other frame
@@ -27,9 +28,9 @@ class FaceRecognition:
         self.encode_faces()
 
     def encode_faces(self):
-        for image in os.listdir('Jiaqi'):
+        for image in os.listdir('JPhonex'):
             if image.endswith(('.png', '.jpg', '.jpeg', 'JPG')):
-                face_image = face_recognition.load_image_file(f'Jiaqi/{image}')
+                face_image = face_recognition.load_image_file(f'JPhonex/{image}')
                 encodings = face_recognition.face_encodings(face_image)
                 # face_encoding = face_recognition.face_encodings(face_image)[0]
                 
@@ -68,17 +69,17 @@ class FaceRecognition:
                 self.face_names = []
                 for face_encoding in self.face_encodings:
                     matche = face_recognition.compare_faces(self.face_encodings, face_encoding)
-                    face_distances = face_recognition.face_distance(self.face_encodings, face_encoding)
-                    name = 'Unknown'
+                    name = 'Unknown'                # 如果没找到 match 的face， 就会显示unknown， 但是， 它 没 有！！！！！！！！！！！
                     confidence = 'Unknown'
 
-                    face_distances = face_recognition.face_distance(self.face_encodings, face_encoding)
-                    best_match_index = np.argmin(face_distances) # Finds the smallest distance
+                    face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+                    if len(face_distances) > 0:
+                        best_match_index = np.argmin(face_distances) # Finds the smallest distance
 
-                    if matche[best_match_index]:
-                        name = self.known_face_names
-                        confidence = face_confidence(face_distances[best_match_index])
-                    self.face_names.append(f'{name}({confidence})')
+                        if matche[best_match_index]:
+                            name = self.known_face_names[best_match_index]
+                            confidence = face_confidence(face_distances[best_match_index])
+                    self.face_names.append(f'{name}({confidence})') 
 
             self.process_currebt_frame = not self.process_currebt_frame
 
