@@ -4,6 +4,7 @@ import os, sys
 import numpy as np
 import math
 import pickle
+from datetime import datetime
 
 # 1: calculate acuracy percentage of faces, and display it on the screen
 def face_confidence(face_distance, match_threshold=0.6):
@@ -26,8 +27,9 @@ class FaceRecognition:
         self.face_locations = []
         self.face_encodings = []
         self.face_names = []
-        self.process_currebt_frame = True    # so you dont have to recognize faces every single frame, insterad, do every other frame
+        self.process_current_frame = True    # so you dont have to recognize faces every single frame, insterad, do every other frame
         self.encode_faces()
+        self.current_attendees = {}
 
 
 # pickleing:
@@ -54,9 +56,9 @@ class FaceRecognition:
 
 
     def encode_faces(self):
-        for image in os.listdir('Jiaqi'):
+        for image in os.listdir('jiaqi-frameTest'):
             if image.endswith(('.png', '.jpg', '.jpeg', 'JPG')):
-                face_image = face_recognition.load_image_file(f'Jiaqi/{image}')
+                face_image = face_recognition.load_image_file(f'Jiaqi-frameTest/{image}')
                 encodings = face_recognition.face_encodings(face_image)
                 # face_encoding = face_recognition.face_encodings(face_image)[0]
                 
@@ -83,14 +85,16 @@ class FaceRecognition:
         while True:
             ret, frame = video_capture.read() # weeither the fram is success or not, if there is no frame to process, ret will turn False!
             
-            if self.process_currebt_frame:
+            if self.process_current_frame:
                 size_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25)
                 # rgb_size_frame = np.ascontiguousarray(size_frame[:, :, ::-1])     # Color Flip (Swaps BGR to RGB )
                 rgb_size_frame = cv2.cvtColor(size_frame, cv2.COLOR_BGR2RGB)        # new way of flip
-# locate all faces in the current frame:
+                
+                # locate all faces in the current frame:
                 self.face_locations = face_recognition.face_locations(rgb_size_frame)
                 self.face_encodings = face_recognition.face_encodings(rgb_size_frame, self.face_locations)
                 self.face_names = []
+
                 for face_encoding in self.face_encodings:
                     matche = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
                     name = 'Unknown'                # 如果没找到 match 的face， 就会显示unknown， 但是， 它 没 有！！！！！！！！！！！
@@ -102,11 +106,21 @@ class FaceRecognition:
 
                         # Check that matche actually has data before using best_match_index
                         if len(matche) > 0 and matche[best_match_index]:
+                            self.get_start_time()           # record the time when face in in the camera
                             name = self.known_face_names[best_match_index]
                             confidence = face_confidence(face_distances[best_match_index])
+                            if name not in self.current_attendees:
+                                self.log_event(name, "Arrived")
+    
+                            # Update their 'Last Seen' time
+                            self.current_attendees[name] = datetime.now()
                     self.face_names.append(f'{name}({confidence})') 
 
-            self.process_currebt_frame = not self.process_currebt_frame
+                self.get_left_time()
+            self.process_current_frame = not self.process_current_frame
+#             Frame 1: True → Run the heavy AI math (Find faces, compare encodings).
+#             Frame 2: False → Skip the math. Just show the video.
+#             Frame 3: True → Run the AI math again.
 
             for (top, right, bottom, left), name in zip(self.face_locations, self.face_names):
                 top *=4             # Earlier in your run_recognition function, resized the frame to 1/4 size (fx=0.25, fy=0.25) to help the AI process the image faster.
@@ -128,8 +142,43 @@ class FaceRecognition:
         cv2.destroyAllWindows()
 
 
+    def get_start_time(self):
+        start_time = datetime.now()
+        return start_time
+    
+   
+    def get_left_time(self):
+        now = datetime.now()
+        
+        for name_in_room, last_seen in list(self.current_attendees.items()):
+            if (now - last_seen).total_seconds() > 5: 
+                # 1. Capture the 'Left' time right here
+                left_at = datetime.now()
+                
+                # 2. IMMEDIATELY use it (Log it to your CSV)
+                self.log_event(name_in_room, "Left")
+                
+                # 3. Clean up the room
+                del self.current_attendees[name_in_room]
 
- 
+
+    def log_event(self, name, status):
+        # 1. Get the current time and date
+        now = datetime.now()
+        time_string = now.strftime('%H:%M:%S')
+        date_string = now.strftime('%Y-%m-%d')
+        
+        # 2. Open the CSV in 'append' mode ('a')
+        # This creates the file if it doesn't exist!
+        with open('attendance.csv', 'a') as f:
+            # Write: Name, Status, Date, Time
+            f.write(f'\n{name}, {status}, {date_string}, {time_string}')
+            
+        # 3. Print to terminal so you can see it happening live
+        print(f"EVENT LOGGED: {name} has {status} at {time_string}")
+
+
+
 if __name__ == '__main__':
     fr = FaceRecognition()
     fr.run_recognition()  # <--- You must call this to open the window!  da!
