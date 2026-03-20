@@ -160,23 +160,23 @@ class FaceRecognition:
                 
                 # 3. Clean up the room
                 del self.current_attendees[name_in_room]
-
+                
 
     def log_event(self, name, status):
-        # 1. Get the current time and date
         now = datetime.now()
         time_string = now.strftime('%H:%M:%S')
-        date_string = now.strftime('%Y-%m-%d')
+        # Create a filename based on today's date
+        date_filename = now.strftime('attendance_%Y-%m-%d.csv')
         
-        # 2. Open the CSV in 'append' mode ('a')
-        # This creates the file if it doesn't exist!
-        with open('attendance.csv', 'a') as f:
-            # Write: Name, Status, Date, Time
-            f.write(f'\n{name}, {status}, {date_string}, {time_string}')
+        file_exists = os.path.isfile(date_filename)                 # Check if file exists to add a header (GPT said it is Optional but professional)
+        
+        with open(date_filename, 'a') as f:
+            if not file_exists:
+                f.write('Name,Status,Time') # Column headers
             
-        # 3. Print to terminal so you can see it happening live
-        print(f"EVENT LOGGED: {name} has {status} at {time_string}")
-
+            f.write(f'\n{name}, {status}, {time_string}')
+            
+        print(f"LOGGED to {date_filename}: {name} {status} at {time_string}")
 
 
 if __name__ == '__main__':
