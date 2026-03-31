@@ -24,10 +24,12 @@ class FaceRecognition:
         self.known_face_encodings = []
         self.known_face_names = []
 
+        self.current_attendees = {}             # Stores {name: last_seen_datetime}
+
         self.face_locations = []
         self.face_encodings = []
         self.face_names = []
-        self.process_current_frame = True    # so you dont have to recognize faces every single frame, insterad, do every other frame
+        self.process_current_frame = True       # so you dont have to recognize faces every single frame, insterad, do every other frame
         self.encode_faces()
         self.current_attendees = {}
 
@@ -73,7 +75,7 @@ class FaceRecognition:
                 continue
 
         print(" ")
-        print(self.known_face_names)    # now the images in folder 'Jiaqi' are initialized
+        print(self.known_face_names)            # now the images in folder 'Jiaqi' are initialized
         print(" ")
         
 # 2: 
@@ -83,7 +85,7 @@ class FaceRecognition:
             print("Video source not found.")
 
         while True:
-            ret, frame = video_capture.read() # weeither the fram is success or not, if there is no frame to process, ret will turn False!
+            ret, frame = video_capture.read()   # weeither the fram is success or not, if there is no frame to process, ret will turn False!
             
             if self.process_current_frame:
                 size_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25)
@@ -95,27 +97,33 @@ class FaceRecognition:
                 self.face_encodings = face_recognition.face_encodings(rgb_size_frame, self.face_locations)
                 self.face_names = []
 
-                for face_encoding in self.face_encodings:
-                    matche = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
-                    name = 'Unknown'                # 如果没找到 match 的face， 就会显示unknown， 但是， 它 没 有！！！！！！！！！！！
+                unknown_index = 0
+                for unknown_face_encoding in self.face_encodings:
+                    matche = face_recognition.compare_faces(self.known_face_encodings, unknown_face_encoding)
+                    name = f'Unknown-{unknown_index}'                # 如果没找到 match 的face， 就会显示unknown， 但是， 它 没 有！！！！！！！！！！！ 现在有了。
                     confidence = 'Unknown'
-
-                    face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+                    face_distances = face_recognition.face_distance(self.known_face_encodings, unknown_face_encoding)
+                    
                     if len(face_distances) > 0:
                         best_match_index = np.argmin(face_distances)
 
-                        # Check that matche actually has data before using best_match_index
                         if len(matche) > 0 and matche[best_match_index]:
-                            self.get_start_time()           # record the time when face in in the camera
                             name = self.known_face_names[best_match_index]
                             confidence = face_confidence(face_distances[best_match_index])
+                            
                             if name not in self.current_attendees:
-                                self.log_event(name, "Arrived")
-    
-                            # Update their 'Last Seen' time
-                            self.current_attendees[name] = datetime.now()
-                    self.face_names.append(f'{name}({confidence})') 
+                                self.log_event(name, "Arrived", datetime.now())
+                        else:
+                            if name not in self.current_attendees:
+                                self.log_event(name, 'Unauthorized', datetime.now())
 
+                            # # Always update 'Last Seen' so the 30s timer resets
+                            # self.current_attendees[name] = datetime.now()
+
+                        self.current_attendees[name] = datetime.now()
+                                         
+                    self.face_names.append(f'{name}({confidence})') 
+                    unknown_index += 1
                 self.get_left_time()
             self.process_current_frame = not self.process_current_frame
 #             Frame 1: True → Run the heavy AI math (Find faces, compare encodings).
@@ -149,34 +157,31 @@ class FaceRecognition:
    
     def get_left_time(self):
         now = datetime.now()
-        
+        # We use list() so we can delete items while looping
         for name_in_room, last_seen in list(self.current_attendees.items()):
-            if (now - last_seen).total_seconds() > 5: 
-                # 1. Capture the 'Left' time right here
-                left_at = datetime.now()
+            seconds_missing = (now - last_seen).total_seconds()
+            
+            if seconds_missing > 5: 
+                # The time they actually left was their 'last_seen' time
+                self.log_event(name_in_room, "Left", last_seen)
                 
-                # 2. IMMEDIATELY use it (Log it to your CSV)
-                self.log_event(name_in_room, "Left")
-                
-                # 3. Clean up the room
+                # Remove them so they can 'Arrive' again later
                 del self.current_attendees[name_in_room]
                 
 
-    def log_event(self, name, status):
-        now = datetime.now()
-        time_string = now.strftime('%H:%M:%S')
-        # Create a filename based on today's date
-        date_filename = now.strftime('attendance_%Y-%m-%d.csv')
+    def log_event(self, name, status, timestamp):
+        time_string = timestamp.strftime('%H:%M:%S')
+        date_filename = timestamp.strftime('./CSVs/attendence_%Y-%m-%d.csv')
         
-        file_exists = os.path.isfile(date_filename)                 # Check if file exists to add a header (GPT said it is Optional but professional)
+        file_exists = os.path.isfile(date_filename)
         
         with open(date_filename, 'a') as f:
             if not file_exists:
-                f.write('Name,Status,Time') # Column headers
+                f.write('Name,Status,Time')
+            f.write(f'\n{name},{status},{time_string}')
+
             
-            f.write(f'\n{name}, {status}, {time_string}')
-            
-        print(f"LOGGED to {date_filename}: {name} {status} at {time_string}")
+        print(f"ENTRY RECORDED: {name} marked as {status} at {time_string}")
 
 
 if __name__ == '__main__':
