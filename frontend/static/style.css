@@ -1,4 +1,28 @@
-body {
-  background-color: rgb(29, 72, 72);
+.head-band {
+  display: flex;
+  flex-direction: column;
+  align-items: baseline;
+  gap: 20px;
+  padding: 20px 40px;
+  background-color: rgb(8, 26, 41);
+}
+.head-band h1 {
   color: white;
+  margin: 0;
+}
+.head-band .admin-info {
+  color: #6ffaea;
+}
+.head-band .admin-info strong {
+  color: white;
+}
+
+.navbar {
+  background-color: darkslategray;
+}
+.navbar .nav-links a {
+  color: white;
+}
+.navbar .nav-links a:hover {
+  color: #00bcd4;
 }/*# sourceMappingURL=style.css.map */

@@ -1,14 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
-    <title>My App</title>
-</head>
-<body>
+<!-- everything here is inhired from base.html-->
+{% extends 'base.html' %}
+
+{% block head%}
+<title>Access Lite Flask</title>
+{% endblock %}
+
+
+{%block body%}
+<div class = 'head-band'>
     <h1> Access Lite </h1>
-    <p> welcome</p>
-</body>
-</html>
- 
+    <div class="admin-info">
+        <span>Logged in as: <strong>Jiaqi</strong></span>
+    </div>
+</div>
+
+<nav class="navbar"></nav>
+    <ul class="nav-links">
+        <li><a href="#">Dashboard</a></li>
+        <li><a href="#">Students</a></li>
+        <li><a href="#">Report</a></li>
+    </ul>
+</nav>
+{%endblock%}

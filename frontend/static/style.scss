@@ -1,6 +1,43 @@
-$main-text-color: white;
+// Brand Colors
+$brand-primary: #6ffaea;       // That bright cyan "Lite" glow
+$brand-bg-dark: rgb(8, 26, 41); // The deep midnight background
+$navbar-bg: darkslategray;      // The secondary bar color
 
-body{
-    background-color: rgb(29, 72, 72);
-    color: $main-text-color;
+// Functional Text Colors
+$main-text-color: white;        // For headers and primary text
+$accent-text-color: #6ffaea;    // For the "Logged in as" and highlights
+$link-hover-color: #00bcd4;     // A slightly different blue for hover states
+
+.head-band {
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    gap: 20px;
+    padding: 20px 40px;
+    background-color: $brand-bg-dark; // Using your deep blue
+    
+    h1 {
+        color: $main-text-color;      // Using white
+        margin: 0;
+    }
+
+    .admin-info {
+        color: $accent-text-color;    // Using the cyan highlight
+        
+        strong {
+            color: $main-text-color;  // Jiaqi's name stays white
+        }
+    }
+}
+
+.navbar {
+    background-color: $navbar-bg;     // Using darkslategray
+    
+    .nav-links a {
+        color: $main-text-color;
+        
+        &:hover {
+            color: $link-hover-color; // Changes on hover
+        }
+    }
 }
