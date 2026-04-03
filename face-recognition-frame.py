@@ -5,6 +5,12 @@ import numpy as np
 import math
 import pickle
 from datetime import datetime
+from dotenv import load_dotenv
+from pymongo import MongoClient
+
+
+
+
 
 # 1: calculate acuracy percentage of faces, and display it on the screen
 def face_confidence(face_distance, match_threshold=0.6):
@@ -31,7 +37,15 @@ class FaceRecognition:
         self.face_names = []
         self.process_current_frame = True       # so you dont have to recognize faces every single frame, insterad, do every other frame
         self.encode_faces()
-        self.current_attendees = {}
+
+
+        env_path = "/Users/jiaqi/git-project/Access-Lite/.env" 
+        load_dotenv(dotenv_path=env_path)
+        mongo_uri = os.getenv("MONGO_URI")
+        print(f"DEBUG: URI found? {mongo_uri is not None}") # This will tell us if it's loading
+        self.client = MongoClient(mongo_uri)
+        self.db = self.client['attendence']
+        self.collection = self.db['Attendance-Logs']
 
 
 # pickleing:
@@ -58,9 +72,9 @@ class FaceRecognition:
 
 
     def encode_faces(self):
-        for image in os.listdir('jiaqi-frameTest'):
+        for image in os.listdir('known_faces'):
             if image.endswith(('.png', '.jpg', '.jpeg', 'JPG')):
-                face_image = face_recognition.load_image_file(f'Jiaqi-frameTest/{image}')
+                face_image = face_recognition.load_image_file(f'known_faces/{image}')
                 encodings = face_recognition.face_encodings(face_image)
                 # face_encoding = face_recognition.face_encodings(face_image)[0]
                 
@@ -183,6 +197,26 @@ class FaceRecognition:
             
         print(f"ENTRY RECORDED: {name} marked as {status} at {time_string}")
 
+
+        if self.collection is not None:
+            document = {
+                "name": name,
+                "status": status,
+                "time": time_string,
+                "date": timestamp.strftime('%Y-%m-%d')
+            }
+            try:
+                print(f"Attempting to push {name} to MongoDB Atlas...")
+                # Check for duplicates
+                if self.collection.count_documents(document) == 0:
+                    self.collection.insert_one(document)
+                    print(f"DATABASE UPDATED: {name} is now in the cloud!")
+                else:
+                    print(f"Note: {name} already exists in DB for this exact time.")
+            except Exception as e:
+                print(f"DB ERROR: {e}")
+        else:
+            print("DB ERROR: self.collection is None. Check your __init__ connection.")
 
 if __name__ == '__main__':
     fr = FaceRecognition()

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">    
+    <link rel="stylesheet" href="./style.css">
+    <script>
+    // The Bouncer: No token? Go to login.
+        if (!localStorage.getItem('adminToken')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+
+    <header class="head-band">
+        <div class="brand-group">
+            <h1 class="brand-name">Access Lite</h1>
+            <p class="admin-info">Logged in as: <strong id="current-admin-name">Admin</strong></p>
+        </div>
+        <div class="logout-container">
+            <a href="#" class="btn-logout" onclick="handleLogout()">Logout</a>
+        </div>
+    </header>
+
+    <div class="page-wrapper"> 
+        <nav class="navbar">
+            <ul class="nav-links">
+                <li>
+                    <a href="#" onclick="switchToDashboard()"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+                </li>
+                <li>
+                    <a href="#" onclick="switchToStudents()"><i class="fa-solid fa-users"></i> Students</a>
+                </li>
+                <li>
+                    <a href="#" onclick="switchToReports()"><i class="fa-solid fa-file-lines"></i> Report</a>
+                </li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div id="dashboard-section">
+                <h1>Admin Control</h1>
+                <div class="admin-grid">
+                    <div class="admin-card" id="record-btn" onclick="toggleRecording()">
+                        <h3>Recording</h3>
+                    </div>
+
+                    <div class="admin-card" onclick="switchToReports()">
+                        <h3>View Logs</h3>
+                    </div>
+
+                    <div class="admin-card danger" onclick="confirmDelete()">
+                        <h3>Clear Logs</h3>
+                    </div>
+                </div>
+            </div>
+            
+
+            <section id="students-section" style="display: none;">
+                <h1>Student List</h1>
+                <div class="table-container">
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Major</th>
+                                <th>Photo Path</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-list-body">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+
+            <section id="report-section" style="display: none;">
+                <h1>Full Attendance Report</h1>
+
+                <div class="table-container">
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-table-body"></tbody> 
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div> 
+        
+    <script>    
+        function handleLogout() {
+            localStorage.removeItem('adminToken'); // Remove the "Key Card"
+            window.location.href = 'login.html';   // Send back to login
+        }
+        function switchToReports() {
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('report-section').style.display = 'block';
+            getAttendanceLogs(); 
+        }
+    
+        function switchToDashboard() {
+            document.getElementById('report-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+        }
+
+        // Function to show the Students section
+        function switchToStudents() {
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('report-section').style.display = 'none';
+            document.getElementById('students-section').style.display = 'block';
+        }
+
+        function switchToReports() {
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('students-section').style.display = 'none'; // Hide students
+            document.getElementById('report-section').style.display = 'block';
+            getAttendanceLogs(); 
+        }
+
+        function switchToDashboard() {
+            document.getElementById('report-section').style.display = 'none';
+            document.getElementById('students-section').style.display = 'none'; // Hide students
+            document.getElementById('dashboard-section').style.display = 'block';
+        }
+    
+        // --- Data Fetching ---
+    
+        async function getAttendanceLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+            
+                const tableBody = document.getElementById('log-table-body');
+                tableBody.innerHTML = '';
+            
+                if (!Array.isArray(data)) {
+                    tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Server Error: ${data.error || 'Unknown error'}</td></tr>`;
+                    return;
+                }
+            
+                data.forEach(log => {
+                    // Map the status string to a CSS class
+                    let statusClass = 'status-left'; // default
+                    const status = log.status.toUpperCase();
+                
+                    if (status === 'UNAUTHORIZED') statusClass = 'status-unauthorized';
+                    if (status === 'ARRIVED') statusClass = 'status-arrived';
+                
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${log._id}</td>
+                        <td>${log.name}</td>
+                        <td><span class="status-tag ${statusClass}">${log.status}</span></td>
+                        <td>${log.time}</td>
+                        <td>${log.date}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Connection error:", err);
+            }
+        }
+    
+    
+        async function toggleRecording() {
+            const btn = document.getElementById('record-btn');
+            const btnText = btn.querySelector('h3');
+        
+            try {
+                const response = await fetch('/api/toggle-camera', { method: 'POST' });
+                const result = await response.json();
+            
+                if (result.status === "started") {
+                    btn.classList.add('active-recording'); // Turns button red
+                    btnText.innerText = "Stop Recording";
+                } else {
+                    btn.classList.remove('active-recording'); // Returns to normal
+                    btnText.innerText = "Recording";
+                }
+            } catch (err) {
+                console.error("Failed to connect to AI server:", err);
+                alert("Server Error: Make sure node app.js is running.");
+            }
+        }
+    
+        async function confirmDelete() {
+            if (confirm("Are you sure you want to clear all logs?")) {
+                try {
+                    const response = await fetch('/api/logs', { method: 'DELETE' });
+                    if (response.ok) {
+                        alert("Database cleared.");
+                        getAttendanceLogs(); 
+                    }
+                } catch (err) {
+                    alert("Failed to delete logs: " + err.message);
+                }
+            }
+        }
+        
+
+        async function switchToStudents() {
+            // 1. UI Switching: Hide other sections, show the Student List
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('report-section').style.display = 'none';
+            document.getElementById('students-section').style.display = 'block';
+
+            try {
+                // 2. Fetch the data from your Node.js backend
+                const response = await fetch('/api/students'); 
+                const students = await response.json();
+            
+                const tableBody = document.getElementById('student-list-body');
+                tableBody.innerHTML = ''; // Clear the table before loading new data
+            
+                students.forEach(student => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${student.studentID}</strong></td>
+                        <td>${student.name}</td>
+                        <td>${student.major}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <img src="${student.photoPath}" style="width:40px; height:40px; border-radius:5px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/40'">
+                                <span style="font-family: monospace; font-size: 0.8em; color: #7f8c8d;">${student.photoPath}</span>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Failed to load students:", err);
+            }
+        }
+
+
+
+
+        window.onload = () => {
+            getAttendanceLogs();
+
+            // Show the actual logged-in username
+            const savedName = localStorage.getItem('adminUsername');
+            if (savedName) {
+                document.getElementById('current-admin-name').innerText = savedName;
+            }
+        };
+    
+        setInterval(() => {
+            if (document.getElementById('report-section').style.display !== 'none') {
+                getAttendanceLogs();
+            }
+        }, 5000); // Refreshes every 5 seconds
+    </script>
+</body>
+</html>
