@@ -1,3 +1,4 @@
 {
-  "python.defaultInterpreterPath": "/Users/jiaqi/git-project/Access-Lite/.venv/bin/python3"
+  "python.defaultInterpreterPath": "/Users/jiaqi/git-project/Access-Lite/.venv/bin/python3",
+  "python-envs.pythonProjects": []
 }
