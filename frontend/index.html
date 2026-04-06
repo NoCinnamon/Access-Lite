@@ -10,8 +10,8 @@
     />
     <link rel="stylesheet" href="./style.css" />
     <script>
-      // The Bouncer: No token? Go to login.
-      if (!localStorage.getItem("adminToken")) {
+      // Session token (sessionStorage clears when you close the tab/browser).
+      if (!sessionStorage.getItem("adminToken")) {
         window.location.href = "login.html";
       }
     </script>
@@ -47,6 +47,11 @@
               ><i class="fa-solid fa-file-lines"></i> Report</a
             >
           </li>
+          <li>
+            <a href="#" onclick="switchToAccount()"
+              ><i class="fa-solid fa-user-gear"></i> Account</a
+            >
+          </li>
         </ul>
       </nav>
 
@@ -68,20 +73,26 @@
           <h1>Members</h1>
           <p class="members-hint">
             Add photos only in the <code>known_faces</code> folder as
-            <code>Name-MemberID.ext</code> (e.g. <code>Friend-4.png</code>). Name,
-            member ID, and <code>photoPath</code> are taken from the filename.
-            Extra fields live in <code>data/members.csv</code> (contact, notes) and
-            in the <strong>members</strong> MongoDB collection—kept in sync when the
-            server starts, when you use <strong>Reload from files &amp; CSV</strong>,
-            or when the face app runs.
+            <code>Name-MemberID.ext</code> (e.g. <code>Friend-4.png</code>).
+            Name, member ID, and <code>photoPath</code> are taken from the
+            filename. Extra fields live in
+            <code>data/members.csv</code> (contact, notes) and in the
+            <strong>members</strong> MongoDB collection—kept in sync when the
+            server starts, when you use
+            <strong>Reload from files &amp; CSV</strong>, or when the face app
+            runs.
           </p>
           <p class="members-hint">
-            Start <strong>Recording</strong> on the dashboard to mark who appears on
-            camera this session.
+            Start <strong>Recording</strong> on the dashboard to mark who
+            appears on camera this session.
           </p>
 
           <div class="member-toolbar">
-            <button type="button" class="btn-member-primary" id="btn-sync-members">
+            <button
+              type="button"
+              class="btn-member-primary"
+              id="btn-sync-members"
+            >
               Reload from files &amp; CSV
             </button>
           </div>
@@ -100,6 +111,49 @@
               </thead>
               <tbody id="member-list-body"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section id="account-section" style="display: none">
+          <h1>Account</h1>
+          <p class="members-hint">
+            <strong>Username</strong> is your login name (read-only). Edit <strong>email</strong> and
+            <strong>phone</strong> here, then click <strong>Save</strong>.
+          </p>
+          <div class="account-card">
+            <h2 class="account-subtitle">Your account</h2>
+            <p id="account-load-error" class="account-load-error" hidden></p>
+            <label class="account-label"
+              >Username
+              <input
+                type="text"
+                id="acct-username"
+                readonly
+                class="account-input-readonly"
+                autocomplete="username"
+            /></label>
+            <label class="account-label"
+              >Email
+              <input
+                type="email"
+                id="acct-email"
+                placeholder="you@example.com"
+                autocomplete="email"
+            /></label>
+            <label class="account-label"
+              >Phone (optional)
+              <input
+                type="tel"
+                id="acct-phone"
+                placeholder="+1…"
+                autocomplete="tel"
+            /></label>
+            <div class="account-actions">
+              <button type="button" class="btn-member-primary" id="btn-save-account">
+                Save
+              </button>
+              <span id="account-save-msg" class="account-msg" aria-live="polite"></span>
+            </div>
           </div>
         </section>
 
@@ -128,7 +182,10 @@
       let memberDetectionPollId = null;
 
       function handleLogout() {
+        sessionStorage.removeItem("adminToken");
+        sessionStorage.removeItem("adminUsername");
         localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUsername");
         window.location.href = "login.html";
       }
 
@@ -146,9 +203,7 @@
       }
 
       async function refreshSessionDetections() {
-        if (
-          document.getElementById("members-section").style.display === "none"
-        )
+        if (document.getElementById("members-section").style.display === "none")
           return;
         try {
           const response = await fetch("/api/session-detections");
@@ -163,7 +218,8 @@
       }
 
       function memberPhotoSrc(member) {
-        const p = member.photoPath != null ? String(member.photoPath).trim() : "";
+        const p =
+          member.photoPath != null ? String(member.photoPath).trim() : "";
         if (!p) return "";
         return p.startsWith("/") ? p : `/${p}`;
       }
@@ -208,9 +264,58 @@
         });
       }
 
+      function authHeaders() {
+        const t = sessionStorage.getItem("adminToken");
+        const h = { "Content-Type": "application/json" };
+        if (t) h["Authorization"] = "Bearer " + t;
+        return h;
+      }
+
+      async function switchToAccount() {
+        document.getElementById("dashboard-section").style.display = "none";
+        document.getElementById("members-section").style.display = "none";
+        document.getElementById("report-section").style.display = "none";
+        document.getElementById("account-section").style.display = "block";
+        stopMemberDetectionPoll();
+        document.getElementById("account-save-msg").textContent = "";
+        const errEl = document.getElementById("account-load-error");
+        errEl.hidden = true;
+        errEl.textContent = "";
+
+        document.getElementById("acct-username").value =
+          sessionStorage.getItem("adminUsername") || "";
+        document.getElementById("acct-email").value = "";
+        document.getElementById("acct-phone").value = "";
+
+        try {
+          const r = await fetch("/api/admin/me", { headers: authHeaders() });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok) {
+            const uname =
+              (data.username && String(data.username).trim()) ||
+              sessionStorage.getItem("adminUsername") ||
+              "";
+            document.getElementById("acct-username").value = uname;
+            document.getElementById("acct-email").value = data.email || "";
+            document.getElementById("acct-phone").value = data.phone || "";
+          } else {
+            errEl.textContent =
+              data.error ||
+              "Could not load profile. Try logging out and signing in again.";
+            errEl.hidden = false;
+          }
+        } catch (e) {
+          console.error(e);
+          errEl.textContent =
+            "Network error loading profile. Is the server running?";
+          errEl.hidden = false;
+        }
+      }
+
       function switchToDashboard() {
         document.getElementById("report-section").style.display = "none";
         document.getElementById("members-section").style.display = "none";
+        document.getElementById("account-section").style.display = "none";
         document.getElementById("dashboard-section").style.display = "block";
         stopMemberDetectionPoll();
       }
@@ -218,6 +323,7 @@
       function switchToReports() {
         document.getElementById("dashboard-section").style.display = "none";
         document.getElementById("members-section").style.display = "none";
+        document.getElementById("account-section").style.display = "none";
         document.getElementById("report-section").style.display = "block";
         stopMemberDetectionPoll();
         getAttendanceLogs();
@@ -227,23 +333,26 @@
         const toolbar = document.getElementById("members-section");
         if (toolbar.dataset.toolbarBound) return;
         toolbar.dataset.toolbarBound = "1";
-        document.getElementById("btn-sync-members").addEventListener("click", async () => {
-          try {
-            const r = await fetch("/api/members/sync", { method: "POST" });
-            const data = await r.json().catch(() => ({}));
-            if (!r.ok) throw new Error(data.error || "Sync failed");
-            await switchToMembers();
-            alert(`Synced ${data.count} member(s). CSV: data/members.csv`);
-          } catch (e) {
-            alert(e.message || "Sync failed");
-          }
-        });
+        document
+          .getElementById("btn-sync-members")
+          .addEventListener("click", async () => {
+            try {
+              const r = await fetch("/api/members/sync", { method: "POST" });
+              const data = await r.json().catch(() => ({}));
+              if (!r.ok) throw new Error(data.error || "Sync failed");
+              await switchToMembers();
+              alert(`Synced ${data.count} member(s). CSV: data/members.csv`);
+            } catch (e) {
+              alert(e.message || "Sync failed");
+            }
+          });
       }
 
       async function switchToMembers() {
         bindMembersToolbar();
         document.getElementById("dashboard-section").style.display = "none";
         document.getElementById("report-section").style.display = "none";
+        document.getElementById("account-section").style.display = "none";
         document.getElementById("members-section").style.display = "block";
 
         const tableBody = document.getElementById("member-list-body");
@@ -289,7 +398,8 @@
 
             const idCell = document.createElement("td");
             const strong = document.createElement("strong");
-            const mid = member.memberID != null ? member.memberID : member.studentID;
+            const mid =
+              member.memberID != null ? member.memberID : member.studentID;
             strong.textContent = mid != null ? String(mid) : "—";
             idCell.appendChild(strong);
 
@@ -350,7 +460,9 @@
           }
 
           const sorted = [...data].sort((a, b) => {
-            const byDate = String(b.date || "").localeCompare(String(a.date || ""));
+            const byDate = String(b.date || "").localeCompare(
+              String(a.date || ""),
+            );
             if (byDate !== 0) return byDate;
             return String(b.time || "").localeCompare(String(a.time || ""));
           });
@@ -413,10 +525,37 @@
         getAttendanceLogs();
 
         // Show the actual logged-in username
-        const savedName = localStorage.getItem("adminUsername");
+        const savedName =
+          sessionStorage.getItem("adminUsername") ||
+          localStorage.getItem("adminUsername");
         if (savedName) {
           document.getElementById("current-admin-name").innerText = savedName;
         }
+
+        document.getElementById("btn-save-account").addEventListener("click", async () => {
+          const msg = document.getElementById("account-save-msg");
+          msg.textContent = "Saving…";
+          msg.style.color = "#64748b";
+          try {
+            const r = await fetch("/api/admin/profile", {
+              method: "PUT",
+              headers: authHeaders(),
+              body: JSON.stringify({
+                email: document.getElementById("acct-email").value.trim(),
+                phone: document.getElementById("acct-phone").value.trim(),
+              }),
+            });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(data.error || "Save failed");
+            document.getElementById("acct-email").value = data.email || "";
+            document.getElementById("acct-phone").value = data.phone || "";
+            msg.textContent = "Saved.";
+            msg.style.color = "#2f855a";
+          } catch (e) {
+            msg.textContent = e.message || "Save failed";
+            msg.style.color = "#c53030";
+          }
+        });
       };
 
       setInterval(() => {

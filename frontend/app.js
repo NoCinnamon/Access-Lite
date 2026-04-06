@@ -1,6 +1,6 @@
 const express = require('express');
 const fs = require('fs');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path'); // Only define this once
 const dotenv = require('dotenv');
 const app = express();
@@ -21,6 +21,9 @@ if (result.error) {
     console.error("❌ DOTENV ERROR:", result.error);
 } else {
     console.log("✅ .env file loaded successfully");
+    if (process.env.ALLOW_ADMIN_REGISTER === 'true') {
+        console.warn('⚠️ ALLOW_ADMIN_REGISTER=true — POST /api/admin/register is open; disable after setup.');
+    }
 }
 
 // CRITICAL: Ensure 'MONGO_URL' matches what is inside your .env file!
@@ -28,6 +31,11 @@ const url = process.env.MONGO_URL || process.env.MONGO_URI;
 const dbName = 'attendence'; 
 
 let db;
+
+// Open the site at / on the login page (not index.html, which is the dashboard).
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
 
 // Serve your frontend files (index.html, style.css, etc.)
 app.use(express.static(__dirname));
@@ -399,10 +407,26 @@ if (!url) {
         });
 }
 
-// --- ADMIN REGISTRATION (Run this once to create your account) ---
+// Admin self-registration is OFF by default. Set ALLOW_ADMIN_REGISTER=true in .env only on a trusted machine for initial setup.
 app.post('/api/admin/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        if (process.env.ALLOW_ADMIN_REGISTER !== 'true') {
+            return res.status(403).json({
+                error: 'Admin registration is disabled. Add users via MongoDB or enable ALLOW_ADMIN_REGISTER=true temporarily in .env.',
+            });
+        }
+
+        const { username, password, email, phone } = req.body;
+
+        if (username == null || String(username).trim() === '') {
+            return res.status(400).json({ error: 'Username is required' });
+        }
+        if (password == null || String(password).length < 1) {
+            return res.status(400).json({ error: 'Password is required' });
+        }
+
+        const emailTrim = email != null ? String(email).trim() : '';
+        const phoneTrim = phone != null ? String(phone).trim() : '';
 
         // 1. Reference the 'Admins' collection 
         // (MongoDB creates this automatically on the first insert)
@@ -419,19 +443,131 @@ app.post('/api/admin/register', async (req, res) => {
 
         // 4. Insert into DB
         await adminCollection.insertOne({
-            username: username,
+            username: String(username).trim(),
             password: hashedPassword,
-            createdAt: new Date()
+            email: emailTrim,
+            phone: phoneTrim,
+            createdAt: new Date(),
         });
 
-        console.log(`✅ Admin Created: ${username}`);
-        res.json({ message: "Admin account created successfully!" });
+        console.log(
+            `✅ Admin Created: ${String(username).trim()} (email: ${emailTrim ? 'yes' : 'empty'}, phone: ${phoneTrim ? 'yes' : 'empty'})`,
+        );
+        res.json({
+            message: 'Admin account created successfully!',
+            admin: {
+                username: String(username).trim(),
+                email: emailTrim,
+                phone: phoneTrim,
+            },
+        });
     } catch (err) {
         console.error("Registration Error:", err);
         res.status(500).json({ error: "Server error during registration" });
     }
 });
 
+function parseBearerAdmin(req) {
+    const h = req.headers.authorization;
+    if (!h || typeof h !== 'string' || !h.startsWith('Bearer ')) return null;
+    try {
+        return jwt.verify(h.slice(7), process.env.JWT_SECRET || 'your_secret_key');
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Load admin doc for JWT: try _id first, then username (fixes bad/stale id in token).
+ */
+/** Read contact fields (lowercase keys preferred; also accept common Compass typos). */
+function adminEmailFromDoc(doc) {
+    if (!doc) return '';
+    const keys = ['email', 'Email', 'mail'];
+    for (const k of keys) {
+        const v = doc[k];
+        if (v != null && String(v).trim() !== '') return String(v).trim();
+    }
+    return '';
+}
+
+function adminPhoneFromDoc(doc) {
+    if (!doc) return '';
+    const keys = ['phone', 'Phone', 'mobile', 'Mobile', 'tel'];
+    for (const k of keys) {
+        const v = doc[k];
+        if (v != null && String(v).trim() !== '') return String(v).trim();
+    }
+    return '';
+}
+
+async function findAdminForPayload(payload) {
+    if (!payload) return null;
+    const col = db.collection('Admins');
+    const proj = { projection: { password: 0 } };
+    const idStr = payload.id != null ? String(payload.id).trim() : '';
+    if (idStr && ObjectId.isValid(idStr)) {
+        const byId = await col.findOne({ _id: new ObjectId(idStr) }, proj);
+        if (byId) return byId;
+    }
+    const uname = payload.username != null ? String(payload.username).trim() : '';
+    if (uname) {
+        return col.findOne({ username: uname }, proj);
+    }
+    return null;
+}
+
+app.get('/api/admin/me', async (req, res) => {
+    try {
+        const payload = parseBearerAdmin(req);
+        if (!payload) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const admin = await findAdminForPayload(payload);
+        if (!admin) return res.status(404).json({ error: 'Admin not found' });
+        res.json({
+            username: admin.username != null ? String(admin.username) : '',
+            email: adminEmailFromDoc(admin),
+            phone: adminPhoneFromDoc(admin),
+        });
+    } catch (err) {
+        console.error('GET /api/admin/me:', err.message);
+        res.status(401).json({ error: 'Unauthorized' });
+    }
+});
+
+app.put('/api/admin/profile', async (req, res) => {
+    try {
+        const payload = parseBearerAdmin(req);
+        if (!payload) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const existing = await findAdminForPayload(payload);
+        if (!existing || !existing._id) {
+            return res.status(404).json({ error: 'Admin not found' });
+        }
+        const body = req.body || {};
+        const email = body.email != null ? String(body.email).trim() : '';
+        const phone = body.phone != null ? String(body.phone).trim() : '';
+        const r = await db.collection('Admins').updateOne(
+            { _id: existing._id },
+            { $set: { email, phone } },
+        );
+        if (r.matchedCount === 0) return res.status(404).json({ error: 'Admin not found' });
+        const admin = await db.collection('Admins').findOne(
+            { _id: existing._id },
+            { projection: { password: 0 } },
+        );
+        res.json({
+            username: admin.username != null ? String(admin.username) : '',
+            email: adminEmailFromDoc(admin),
+            phone: adminPhoneFromDoc(admin),
+        });
+    } catch (err) {
+        console.error('PUT /api/admin/profile:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // --- ADMIN LOGIN ROUTE ---
 app.post('/api/admin/login', async (req, res) => {
@@ -453,9 +589,9 @@ app.post('/api/admin/login', async (req, res) => {
         if (isMatch) {
             // 4. Create the "Key Card" (JWT Token)
             const token = jwt.sign(
-                { id: admin._id, username: admin.username },
-                process.env.JWT_SECRET || 'your_secret_key', 
-                { expiresIn: '2h' }
+                { id: String(admin._id), username: admin.username },
+                process.env.JWT_SECRET || 'your_secret_key',
+                { expiresIn: '2h' },
             );
 
             console.log(`🔑 Login successful: ${username}`);

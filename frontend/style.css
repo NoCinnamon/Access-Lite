@@ -254,6 +254,57 @@ body {
     color: #4a5568;
 }
 
+.account-subtitle {
+    margin: 0 0 14px 0;
+    font-size: 1rem;
+    color: var(--color-dark);
+    font-weight: 700;
+}
+.account-load-error {
+    color: #c53030;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+}
+.account-card {
+    margin: 0 0 24px 15px;
+    max-width: 420px;
+    padding: 20px 22px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+.account-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 14px;
+}
+.account-input-readonly {
+    background: #edf2f7 !important;
+    color: #1e293b !important;
+    cursor: default;
+}
+
+.account-label input {
+    font-weight: 400;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 14px;
+}
+.account-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.account-msg {
+    font-size: 14px;
+}
+
 /* --- Members list + live detection --- */
 .members-hint {
     color: #64748b;

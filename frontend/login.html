@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Access Lite | Admin Login</title>
     
-    <script>
-    // REVERSE LOGIC: If they ALREADY have a token, skip login and go to dashboard
-    if (localStorage.getItem('adminToken')) {
-        window.location.href = 'index.html';
-    }
-    </script>
-    
     <style>
         body { 
             display: flex; 
@@ -68,6 +61,45 @@
     </div>
 
     <script>
+        (async function maybeSkipLogin() {
+            let t = sessionStorage.getItem('adminToken');
+            const legacy = localStorage.getItem('adminToken');
+            if (!t && legacy) {
+                try {
+                    const r = await fetch('/api/admin/me', {
+                        headers: { Authorization: 'Bearer ' + legacy },
+                    });
+                    if (r.ok) {
+                        sessionStorage.setItem('adminToken', legacy);
+                        sessionStorage.setItem(
+                            'adminUsername',
+                            localStorage.getItem('adminUsername') || '',
+                        );
+                        localStorage.removeItem('adminToken');
+                        localStorage.removeItem('adminUsername');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                } catch (_) {}
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminUsername');
+            }
+            if (!t) return;
+            try {
+                const r = await fetch('/api/admin/me', {
+                    headers: { Authorization: 'Bearer ' + t },
+                });
+                if (r.ok) window.location.href = 'index.html';
+                else {
+                    sessionStorage.removeItem('adminToken');
+                    sessionStorage.removeItem('adminUsername');
+                }
+            } catch (_) {
+                sessionStorage.removeItem('adminToken');
+                sessionStorage.removeItem('adminUsername');
+            }
+        })();
+
         async function login() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
@@ -83,11 +115,9 @@
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
-                    // Save Token AND Username
-                    localStorage.setItem('adminToken', data.token);
-                    localStorage.setItem('adminUsername', data.username); 
-                    
-                    window.location.href = 'index.html'; 
+                    sessionStorage.setItem('adminToken', data.token);
+                    sessionStorage.setItem('adminUsername', data.username);
+                    window.location.href = 'index.html';
                 } else {
                     errorMsg.innerText = data.error || "Login failed";
                 }
