@@ -69,11 +69,11 @@
 
             <div
               class="admin-card"
-              id="btn-alert-off"
-              onclick="turnOffAlertSound()"
-              title="Turn off red-list alert sound only. Detection, camera, and logs are unchanged. To turn sound back on, set redListSoundEnabled to true in data/camera_alert_settings.json (or delete that file)."
+              id="btn-alert-sound"
+              onclick="toggleRedListAlertSound()"
+              title="Toggle red-list alert sound (when the camera sees a face that matches a photo in red_list/). Detection and logs are unchanged."
             >
-              <h3>Alert-OFF</h3>
+              <h3>Alert sound</h3>
             </div>
           </div>
         </div>
@@ -539,31 +539,37 @@
         }
       }
 
-      async function refreshAlertOffButtonStyle() {
-        const card = document.getElementById("btn-alert-off");
+      async function refreshRedListAlertButton() {
+        const card = document.getElementById("btn-alert-sound");
         if (!card) return;
+        const h3 = card.querySelector("h3");
         try {
           const r = await fetch("/api/settings/camera-alerts");
           const d = await r.json().catch(() => ({}));
           const soundOn = d.redListSoundEnabled !== false;
           card.classList.toggle("alert-sound-off", !soundOn);
+          if (h3) h3.textContent = soundOn ? "Alert sound ON" : "Alert sound OFF";
         } catch (_) {
           card.classList.remove("alert-sound-off");
+          if (h3) h3.textContent = "Alert sound";
         }
       }
 
-      async function turnOffAlertSound() {
+      async function toggleRedListAlertSound() {
         try {
+          const cur = await fetch("/api/settings/camera-alerts");
+          const d = await cur.json().catch(() => ({}));
+          const currentlyOn = d.redListSoundEnabled !== false;
           const put = await fetch("/api/settings/camera-alerts", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ redListSoundEnabled: false }),
+            body: JSON.stringify({ redListSoundEnabled: !currentlyOn }),
           });
           const data = await put.json().catch(() => ({}));
           if (!put.ok) throw new Error(data.error || "Could not save setting");
-          await refreshAlertOffButtonStyle();
+          await refreshRedListAlertButton();
         } catch (e) {
-          alert(e.message || "Failed to turn off alert sound");
+          alert(e.message || "Failed to update alert sound");
         }
       }
 
@@ -597,7 +603,7 @@
 
       window.onload = () => {
         getAttendanceLogs();
-        refreshAlertOffButtonStyle();
+        refreshRedListAlertButton();
 
         // Show the actual logged-in username
         const savedName =

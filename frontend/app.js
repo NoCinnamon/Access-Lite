@@ -417,7 +417,7 @@ app.get('/api/session-detections', (req, res) => {
     });
 });
 
-/** Red-list alert sound only (Python reads JSON); not used for detection or logging. */
+/** Red-list alert sound: Python reads this when camera runs; does not affect detection or logging. */
 app.get('/api/settings/camera-alerts', (req, res) => {
     try {
         res.json(readCameraAlertSettings());
