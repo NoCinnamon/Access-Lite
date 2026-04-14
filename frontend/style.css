@@ -180,6 +180,16 @@ body {
     border-color: #E74C3C;
 }
 
+/* Red-list alert sound muted (dashboard toggle) */
+.admin-card.alert-sound-off {
+    border-color: #94a3b8;
+    background-color: #f1f5f9;
+}
+
+.admin-card.alert-sound-off h3 {
+    color: #64748b;
+}
+
 
 /* --- 8. Enhanced Table Styles (The "Full Width" Fix) --- */
 .table-container {
@@ -241,6 +251,12 @@ body {
     background-color: #fff5f5;
     color: #c53030;
     border: 1px solid #feb2b2;
+}
+
+.status-unknown {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fcd34d;
 }
 
 .status-arrived {
@@ -373,26 +389,29 @@ body {
     vertical-align: middle;
 }
 
+/* Seen column: no square box — only a green check when Python reports Arrived this session */
 .detect-indicator {
     display: inline-flex;
-    width: 32px;
-    height: 32px;
-    border: 2px solid #cbd5e0;
-    border-radius: 8px;
     align-items: center;
     justify-content: center;
-    color: transparent;
-    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    border: none;
+    background: transparent;
+    padding: 0;
 }
 
-.detect-indicator.detected {
-    background-color: #2f855a;
-    border-color: #276749;
-    color: #ffffff;
+.detect-indicator i {
+    font-size: 1.05rem;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    color: #2f855a;
 }
 
 .detect-indicator.detected i {
-    color: #ffffff;
+    opacity: 1;
+    color: #2f855a;
 }
 
 /* --- 10. Mobile Responsiveness --- */

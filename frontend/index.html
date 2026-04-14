@@ -66,6 +66,15 @@
             <div class="admin-card" onclick="switchToReports()">
               <h3>View Logs</h3>
             </div>
+
+            <div
+              class="admin-card"
+              id="btn-alert-off"
+              onclick="turnOffAlertSound()"
+              title="Turn off red-list alert sound only. Detection, camera, and logs are unchanged. To turn sound back on, set redListSoundEnabled to true in data/camera_alert_settings.json (or delete that file)."
+            >
+              <h3>Alert-OFF</h3>
+            </div>
           </div>
         </div>
 
@@ -78,13 +87,9 @@
             filename. Extra fields live in
             <code>data/members.csv</code> (contact, notes) and in the
             <strong>members</strong> MongoDB collection—kept in sync when the
-            server starts, when you use
+            server starts, when you click
             <strong>Reload from files &amp; CSV</strong>, or when the face app
             runs.
-          </p>
-          <p class="members-hint">
-            Start <strong>Recording</strong> on the dashboard to mark who
-            appears on camera this session.
           </p>
 
           <div class="member-toolbar">
@@ -117,8 +122,9 @@
         <section id="account-section" style="display: none">
           <h1>Account</h1>
           <p class="members-hint">
-            <strong>Username</strong> is your login name (read-only). Edit <strong>email</strong> and
-            <strong>phone</strong> here, then click <strong>Save</strong>.
+            <strong>Username</strong> is your login name (read-only). Edit
+            <strong>email</strong> and <strong>phone</strong> here, then click
+            <strong>Save</strong>.
           </p>
           <div class="account-card">
             <h2 class="account-subtitle">Your account</h2>
@@ -149,10 +155,18 @@
                 autocomplete="tel"
             /></label>
             <div class="account-actions">
-              <button type="button" class="btn-member-primary" id="btn-save-account">
+              <button
+                type="button"
+                class="btn-member-primary"
+                id="btn-save-account"
+              >
                 Save
               </button>
-              <span id="account-save-msg" class="account-msg" aria-live="polite"></span>
+              <span
+                id="account-save-msg"
+                class="account-msg"
+                aria-live="polite"
+              ></span>
             </div>
           </div>
         </section>
@@ -231,7 +245,7 @@
         return base.replace(/\.[^.]+$/i, "").trim();
       }
 
-      /** Must match Python stdout: ENTRY RECORDED: <stem> marked as Arrived (stem = known_faces filename without ext). */
+      /** Primary key for the row; SESSION_DETECT_KEYS lists every id we match against (faceKey, path stem, member ID). */
       function detectKeyForMember(member) {
         if (member.faceKey != null && String(member.faceKey).trim() !== "") {
           return String(member.faceKey).trim();
@@ -247,15 +261,39 @@
         return String(raw || "").trim();
       }
 
+      function detectionKeysForMember(member) {
+        const out = new Set();
+        const add = (v) => {
+          const s = String(v ?? "").trim();
+          if (s) out.add(s.toLowerCase());
+        };
+        add(member.faceKey);
+        add(faceStemFromPhotoPath(member.photoPath));
+        add(member.memberID);
+        add(member.studentID);
+        const primary = detectKeyForMember(member);
+        add(primary);
+        return Array.from(out);
+      }
+
       function applyMemberDetectionStates(detectedNames) {
         const norm = new Set(
           detectedNames.map((n) => String(n).trim().toLowerCase()),
         );
         document.querySelectorAll("#member-list-body tr").forEach((tr) => {
-          const key = (tr.dataset.detectKey || "").trim().toLowerCase();
+          const fromAttr = (tr.dataset.detectKeys || "")
+            .split("|")
+            .map((k) => k.trim().toLowerCase())
+            .filter(Boolean);
+          const keys =
+            fromAttr.length > 0
+              ? fromAttr
+              : [(tr.dataset.detectKey || "").trim().toLowerCase()].filter(
+                  Boolean,
+                );
           const indicator = tr.querySelector(".detect-indicator");
           if (!indicator) return;
-          const hit = Boolean(key && norm.has(key));
+          const hit = keys.some((k) => k && norm.has(k));
           indicator.classList.toggle("detected", hit);
           indicator.setAttribute(
             "aria-label",
@@ -379,6 +417,7 @@
             const key = detectKeyForMember(member);
             const row = document.createElement("tr");
             row.dataset.detectKey = key;
+            row.dataset.detectKeys = detectionKeysForMember(member).join("|");
 
             const photoCell = document.createElement("td");
             photoCell.className = "member-photo-cell";
@@ -473,16 +512,23 @@
                 ? String(log.studentID).trim()
                 : "—";
             let statusClass = "status-left";
-            const status = log.status.toUpperCase();
+            const status = String(log.status || "").toUpperCase();
+            let statusLabel = log.status;
 
-            if (status === "UNAUTHORIZED") statusClass = "status-unauthorized";
+            if (status === "UNAUTHORIZED") {
+              statusClass = "status-unauthorized";
+              statusLabel = "UNAUTHORIZED";
+            } else if (status === "UNKNOWN") {
+              statusClass = "status-unknown";
+              statusLabel = "Unknown";
+            }
             if (status === "ARRIVED") statusClass = "status-arrived";
 
             const row = document.createElement("tr");
             row.innerHTML = `
                         <td>${sid}</td>
                         <td>${log.name}</td>
-                        <td><span class="status-tag ${statusClass}">${log.status}</span></td>
+                        <td><span class="status-tag ${statusClass}">${statusLabel}</span></td>
                         <td>${log.time}</td>
                         <td>${log.date}</td>
                     `;
@@ -490,6 +536,34 @@
           });
         } catch (err) {
           console.error("Connection error:", err);
+        }
+      }
+
+      async function refreshAlertOffButtonStyle() {
+        const card = document.getElementById("btn-alert-off");
+        if (!card) return;
+        try {
+          const r = await fetch("/api/settings/camera-alerts");
+          const d = await r.json().catch(() => ({}));
+          const soundOn = d.redListSoundEnabled !== false;
+          card.classList.toggle("alert-sound-off", !soundOn);
+        } catch (_) {
+          card.classList.remove("alert-sound-off");
+        }
+      }
+
+      async function turnOffAlertSound() {
+        try {
+          const put = await fetch("/api/settings/camera-alerts", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ redListSoundEnabled: false }),
+          });
+          const data = await put.json().catch(() => ({}));
+          if (!put.ok) throw new Error(data.error || "Could not save setting");
+          await refreshAlertOffButtonStyle();
+        } catch (e) {
+          alert(e.message || "Failed to turn off alert sound");
         }
       }
 
@@ -523,6 +597,7 @@
 
       window.onload = () => {
         getAttendanceLogs();
+        refreshAlertOffButtonStyle();
 
         // Show the actual logged-in username
         const savedName =
@@ -532,30 +607,32 @@
           document.getElementById("current-admin-name").innerText = savedName;
         }
 
-        document.getElementById("btn-save-account").addEventListener("click", async () => {
-          const msg = document.getElementById("account-save-msg");
-          msg.textContent = "Saving…";
-          msg.style.color = "#64748b";
-          try {
-            const r = await fetch("/api/admin/profile", {
-              method: "PUT",
-              headers: authHeaders(),
-              body: JSON.stringify({
-                email: document.getElementById("acct-email").value.trim(),
-                phone: document.getElementById("acct-phone").value.trim(),
-              }),
-            });
-            const data = await r.json().catch(() => ({}));
-            if (!r.ok) throw new Error(data.error || "Save failed");
-            document.getElementById("acct-email").value = data.email || "";
-            document.getElementById("acct-phone").value = data.phone || "";
-            msg.textContent = "Saved.";
-            msg.style.color = "#2f855a";
-          } catch (e) {
-            msg.textContent = e.message || "Save failed";
-            msg.style.color = "#c53030";
-          }
-        });
+        document
+          .getElementById("btn-save-account")
+          .addEventListener("click", async () => {
+            const msg = document.getElementById("account-save-msg");
+            msg.textContent = "Saving…";
+            msg.style.color = "#64748b";
+            try {
+              const r = await fetch("/api/admin/profile", {
+                method: "PUT",
+                headers: authHeaders(),
+                body: JSON.stringify({
+                  email: document.getElementById("acct-email").value.trim(),
+                  phone: document.getElementById("acct-phone").value.trim(),
+                }),
+              });
+              const data = await r.json().catch(() => ({}));
+              if (!r.ok) throw new Error(data.error || "Save failed");
+              document.getElementById("acct-email").value = data.email || "";
+              document.getElementById("acct-phone").value = data.phone || "";
+              msg.textContent = "Saved.";
+              msg.style.color = "#2f855a";
+            } catch (e) {
+              msg.textContent = e.message || "Save failed";
+              msg.style.color = "#c53030";
+            }
+          });
       };
 
       setInterval(() => {

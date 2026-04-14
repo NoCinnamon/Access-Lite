@@ -10,7 +10,29 @@ const jwt = require('jsonwebtoken');
 
 const projectRoot = path.join(__dirname, '..');
 const MEMBERS_CSV = path.join(projectRoot, 'data', 'members.csv');
+const CAMERA_ALERT_SETTINGS = path.join(projectRoot, 'data', 'camera_alert_settings.json');
 const MEMBERS_CSV_HEADER = ['faceKey', 'name', 'memberID', 'photoPath', 'contact', 'notes'];
+
+function readCameraAlertSettings() {
+    try {
+        if (!fs.existsSync(CAMERA_ALERT_SETTINGS)) {
+            return { redListSoundEnabled: true };
+        }
+        const raw = fs.readFileSync(CAMERA_ALERT_SETTINGS, 'utf8');
+        const j = JSON.parse(raw);
+        return { redListSoundEnabled: j.redListSoundEnabled !== false };
+    } catch (e) {
+        return { redListSoundEnabled: true };
+    }
+}
+
+function writeCameraAlertSettings(settings) {
+    fs.mkdirSync(path.dirname(CAMERA_ALERT_SETTINGS), { recursive: true });
+    const payload = {
+        redListSoundEnabled: settings.redListSoundEnabled !== false,
+    };
+    fs.writeFileSync(CAMERA_ALERT_SETTINGS, `${JSON.stringify(payload)}\n`, 'utf8');
+}
 
 app.use('/known_faces', express.static(path.join(projectRoot, 'known_faces')));
 
@@ -285,13 +307,27 @@ function ingestStdoutForDetections(chunk, bufferRef) {
     bufferRef.value += chunk.toString('utf8');
     const parts = bufferRef.value.split(/\r?\n/);
     bufferRef.value = parts.pop() || '';
-    const re = /ENTRY\s+RECORDED:\s*(.+?)\s+marked\s+as\s+Arrived/i;
+    const reEntry = /ENTRY\s+RECORDED:\s*(.+?)\s+marked\s+as\s+Arrived/i;
+    const reKeys = /^SESSION_DETECT_KEYS:\s*(.+)$/i;
     for (const line of parts) {
-        const m = line.replace(/\r$/, '').match(re);
-        if (m) {
-            const name = m[1].trim();
-            sessionDetectedNames.add(name);
-            console.log(`Session detection: ${name}`);
+        const clean = line.replace(/\r$/, '');
+        const mEntry = clean.match(reEntry);
+        if (mEntry) {
+            const name = mEntry[1].trim();
+            if (name) {
+                sessionDetectedNames.add(name);
+                console.log(`Session detection: ${name}`);
+            }
+        }
+        const mKeys = clean.match(reKeys);
+        if (mKeys) {
+            for (const part of mKeys[1].split('|')) {
+                const k = part.trim();
+                if (k) {
+                    sessionDetectedNames.add(k);
+                    console.log(`Session detection key: ${k}`);
+                }
+            }
         }
     }
 }
@@ -379,6 +415,28 @@ app.get('/api/session-detections', (req, res) => {
         detectedNames: Array.from(sessionDetectedNames),
         recording: Boolean(pythonProcess),
     });
+});
+
+/** Red-list alert sound only (Python reads JSON); not used for detection or logging. */
+app.get('/api/settings/camera-alerts', (req, res) => {
+    try {
+        res.json(readCameraAlertSettings());
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/settings/camera-alerts', (req, res) => {
+    try {
+        const b = req.body || {};
+        if (typeof b.redListSoundEnabled !== 'boolean') {
+            return res.status(400).json({ error: 'redListSoundEnabled (boolean) is required' });
+        }
+        writeCameraAlertSettings({ redListSoundEnabled: b.redListSoundEnabled });
+        res.json(readCameraAlertSettings());
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // 1. Connect to MongoDB FIRST
