@@ -7,6 +7,7 @@ const app = express();
 app.use(express.json());
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const projectRoot = path.join(__dirname, '..');
 const MEMBERS_CSV = path.join(projectRoot, 'data', 'members.csv');
@@ -435,6 +436,78 @@ app.put('/api/settings/camera-alerts', (req, res) => {
         writeCameraAlertSettings({ redListSoundEnabled: b.redListSoundEnabled });
         res.json(readCameraAlertSettings());
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/** SMTP for red-list alert emails. Set SMTP_HOST + SMTP_FROM; optional SMTP_USER/SMTP_PASS, SMTP_PORT (587), SMTP_SECURE=true for 465. */
+function getRedListMailTransport() {
+    const host = process.env.SMTP_HOST;
+    const from = process.env.SMTP_FROM;
+    if (!host || !from) return null;
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const secure = process.env.SMTP_SECURE === 'true';
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    return nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: user ? { user, pass: pass || '' } : undefined,
+    });
+}
+
+/**
+ * Called by face-recognition-frame.py when a live face matches red_list/.
+ * Protected by X-Alert-Secret === process.env.RED_LIST_ALERT_SECRET (set in .env).
+ */
+app.post('/api/internal/red-list-alert', async (req, res) => {
+    try {
+        const expected = process.env.RED_LIST_ALERT_SECRET;
+        if (!expected || String(req.get('x-alert-secret')) !== String(expected)) {
+            return res.status(401).json({ error: 'Invalid or missing alert secret' });
+        }
+        if (!db) {
+            return res.status(503).json({ error: 'Database not connected' });
+        }
+        const transport = getRedListMailTransport();
+        if (!transport) {
+            console.warn('red_list alert email: SMTP not configured (set SMTP_HOST and SMTP_FROM)');
+            return res.status(503).json({ error: 'Mail not configured' });
+        }
+        const b = req.body || {};
+        const label = b.redListLabel != null ? String(b.redListLabel).trim() : 'unknown';
+        const when = b.detectedAt != null ? String(b.detectedAt) : new Date().toISOString();
+        const admins = await db.collection('Admins').find({}).project({ password: 0 }).toArray();
+        const emails = [...new Set(admins.map((a) => adminEmailFromDoc(a)).filter(Boolean))];
+        if (emails.length === 0) {
+            console.warn('red_list alert email: no admin email addresses in Admins collection');
+            return res.json({ ok: true, sent: 0, message: 'No admin emails' });
+        }
+        const from = process.env.SMTP_FROM;
+        const subject = `Access Lite: unauthorized (red list) — ${label}`;
+        const text = [
+            'A face matching the red list was detected at the camera.',
+            '',
+            `Red list reference: ${label}`,
+            `Time: ${when}`,
+            '',
+            'This person is treated as unauthorized. Check Access Lite logs and footage as needed.',
+        ].join('\n');
+        await Promise.all(
+            emails.map((to) =>
+                transport.sendMail({
+                    from,
+                    to,
+                    subject,
+                    text,
+                }),
+            ),
+        );
+        console.log(`red_list alert email: sent to ${emails.length} address(es)`);
+        res.json({ ok: true, sent: emails.length });
+    } catch (err) {
+        console.error('red_list alert email:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
