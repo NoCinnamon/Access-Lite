@@ -515,7 +515,10 @@
             const status = String(log.status || "").toUpperCase();
             let statusLabel = log.status;
 
-            if (status === "UNAUTHORIZED") {
+            if (status === "UNAUTHORIZED (UNKNOWN)") {
+              statusClass = "status-unauthorized-stranger";
+              statusLabel = "UNAUTHORIZED";
+            } else if (status === "UNAUTHORIZED") {
               statusClass = "status-unauthorized";
               statusLabel = "UNAUTHORIZED";
             } else if (status === "UNKNOWN") {

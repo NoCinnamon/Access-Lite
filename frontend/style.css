@@ -253,6 +253,13 @@ body {
     border: 1px solid #feb2b2;
 }
 
+/* Stranger / not in known_faces or red_list — still UNAUTHORIZED label, yellow badge */
+.status-unauthorized-stranger {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fcd34d;
+}
+
 .status-unknown {
     background-color: #fffbeb;
     color: #b45309;
@@ -261,8 +268,8 @@ body {
 
 .status-arrived {
     background-color: #f0fff4;
-    color: #2f855a;
-    border: 1px solid #9ae6b4;
+    color: #02fa44;
+    border: 1px solid #02fa44;
 }
 
 .status-left {
@@ -406,12 +413,12 @@ body {
     line-height: 1;
     opacity: 0;
     transition: opacity 0.2s ease, color 0.2s ease;
-    color: #2f855a;
+    color: #02fa44;
 }
 
 .detect-indicator.detected i {
     opacity: 1;
-    color: #2f855a;
+    color: #02fa44;
 }
 
 /* --- 10. Mobile Responsiveness --- */
