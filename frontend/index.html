@@ -589,9 +589,11 @@
           if (result.status === "started") {
             btn.classList.add("active-recording"); // Turns button red
             btnText.innerText = "Stop Recording";
+            applyMemberDetectionStates([]); // new session — server cleared detections
           } else {
             btn.classList.remove("active-recording"); // Returns to normal
             btnText.innerText = "Recording";
+            applyMemberDetectionStates([]); // camera off — unmark all “seen this session”
           }
           if (
             document.getElementById("members-section").style.display !== "none"

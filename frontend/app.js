@@ -742,8 +742,10 @@ let pythonProcess = null;
 
 app.post('/api/toggle-camera', (req, res) => {
     if (pythonProcess) {
-        pythonProcess.kill();
+        const child = pythonProcess;
         pythonProcess = null;
+        child.kill();
+        sessionDetectedNames.clear();
         console.log("Stopping AI...");
         return res.json({ status: "stopped" });
     }
@@ -755,22 +757,26 @@ app.post('/api/toggle-camera', (req, res) => {
     const stdoutBuffer = { value: '' };
     const pythonBin = process.env.PYTHON_EXEC || (process.platform === 'win32' ? 'python' : 'python3');
 
-    pythonProcess = spawn(pythonBin, ['-u', scriptPath], {
+    const child = spawn(pythonBin, ['-u', scriptPath], {
         cwd: projectRoot,
         env: { ...process.env, PYTHONUNBUFFERED: '1' },
     });
+    pythonProcess = child;
 
-    pythonProcess.stdout.on('data', (data) => {
+    child.stdout.on('data', (data) => {
         console.log(`AI Output: ${data}`);
         ingestStdoutForDetections(data, stdoutBuffer);
     });
 
-    pythonProcess.stderr.on('data', (data) => {
+    child.stderr.on('data', (data) => {
         console.error(`AI Error: ${data}`);
     });
 
-    pythonProcess.on('close', () => {
-        pythonProcess = null;
+    child.on('close', () => {
+        if (pythonProcess === child) {
+            pythonProcess = null;
+            sessionDetectedNames.clear();
+        }
         console.log('Python AI process exited');
     });
 
