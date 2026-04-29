@@ -9,7 +9,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-const projectRoot = path.join(__dirname, '..');
+const projectRoot = path.join(__dirname, '..', '..');
+const frontendDir = path.join(projectRoot, 'frontend');
 const MEMBERS_CSV = path.join(projectRoot, 'data', 'members.csv');
 const CAMERA_ALERT_SETTINGS = path.join(projectRoot, 'data', 'camera_alert_settings.json');
 const MEMBERS_CSV_HEADER = ['faceKey', 'name', 'memberID', 'photoPath', 'contact', 'notes'];
@@ -38,7 +39,7 @@ function writeCameraAlertSettings(settings) {
 app.use('/known_faces', express.static(path.join(projectRoot, 'known_faces')));
 
 
-const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
+const result = dotenv.config({ path: path.join(projectRoot, '.env') });
 
 if (result.error) {
     console.error("❌ DOTENV ERROR:", result.error);
@@ -57,11 +58,11 @@ let db;
 
 // Open the site at / on the login page (not index.html, which is the dashboard).
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
+    res.sendFile(path.join(frontendDir, 'login.html'));
 });
 
 // Serve your frontend files (index.html, style.css, etc.)
-app.use(express.static(__dirname));
+app.use(express.static(frontendDir));
 
 app.get('/api/logs', async (req, res) => {
     try {
@@ -753,7 +754,7 @@ app.post('/api/toggle-camera', (req, res) => {
     sessionDetectedNames.clear();
     console.log("Launching Python AI script..."); // Log to confirm the button worked
 
-    const scriptPath = path.join(projectRoot, 'face-recognition-frame.py');
+    const scriptPath = path.join(projectRoot, 'backend', 'vision', 'face-recognition-frame.py');
     const stdoutBuffer = { value: '' };
     const pythonBin = process.env.PYTHON_EXEC || (process.platform === 'win32' ? 'python' : 'python3');
 

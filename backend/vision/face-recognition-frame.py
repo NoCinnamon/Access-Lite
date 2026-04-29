@@ -69,7 +69,10 @@ class FaceRecognition:
         self.face_names = []
         self.process_current_frame = True
 
-        env_path = "/Users/jiaqi/git-project/Access-Lite/.env"
+        self._project_root = os.path.abspath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+        )
+        env_path = os.path.join(self._project_root, ".env")
         load_dotenv(dotenv_path=env_path)
         mongo_uri = os.getenv("MONGO_URI")
         print(f"DEBUG: URI found? {mongo_uri is not None}")
@@ -77,7 +80,6 @@ class FaceRecognition:
         self.db = self.client["attendence"]
         self.collection = self.db["Attendance-Logs"]
         self._face_to_member_id = {}
-        self._project_root = os.path.dirname(os.path.abspath(__file__))
         self._encoding_pickle_path = os.path.join(self._project_root, "encoding_database.pkl")
         self.red_list_encodings = []
         self.red_list_labels = []
@@ -588,8 +590,13 @@ class FaceRecognition:
         display_name = self.display_name_for_face(key)
         student_id = self.resolve_student_id(key)
         time_string = timestamp.strftime('%H:%M:%S')
-        date_filename = timestamp.strftime('./CSVs/attendence_%Y-%m-%d.csv')
+        date_filename = os.path.join(
+            self._project_root,
+            "CSVs",
+            timestamp.strftime("attendence_%Y-%m-%d.csv"),
+        )
         date_str = timestamp.strftime('%Y-%m-%d')
+        os.makedirs(os.path.dirname(date_filename), exist_ok=True)
 
         file_exists = os.path.isfile(date_filename)
         header_line = None
